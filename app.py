@@ -4,12 +4,16 @@ import os
 
 app = Flask(__name__)
 
-AT_USERNAME = os.environ.get("AT_USERNAME")
-AT_API_KEY = os.environ.get("AT_API_KEY")
+AT_USERNAME = os.environ.get("AT_USERNAME", "sandbox")
+AT_API_KEY = os.environ.get("AT_API_KEY", "dummy")
 
-africastalking.initialize(AT_USERNAME, AT_API_KEY)
-sms = africastalking.SMS
-# payment = africastalking.Payment  # version mpya haina hii
+try:
+    africastalking.initialize(AT_USERNAME, AT_API_KEY)
+    sms = africastalking.SMS
+    payment_service = africastalking.Payment
+except:
+    sms = None
+    payment_service = None
 
 HTML = """
 <h2>VENTE - CEO Jona Mwachia</h2>
@@ -22,16 +26,11 @@ Chagua Bundle:<br>
 <option value="10MB_5">TEST 10MBs - 5 KSH</option>
 <option value="50MB_10">TEST 50MBs - 10 KSH</option>
 <option value="1GB_20">1GB - 20 KSH</option>
-<option value="2GB_35">2GB - 35 KSH</option>
-<option value="5GB_50">5GB - 50 KSH</option>
-<option value="UNLIMITED_1H_50">UNLIMITED 1 HOUR - 50 KSH</option>
 <option value="UNLIMITED_1DAY_100">UNLIMITED 24HRS - 100 KSH</option>
 <option value="UNLIMITED_7DAYS_500">UNLIMITED 7 DAYS - 500 KSH</option>
-<option value="UNLIMITED_30DAYS_1500">UNLIMITED 30 DAYS - 1500 KSH</option>
 </select><br><br>
-<button style="background:green;color:white;padding:12px;font-weight:bold;">LIPA NA M-PESA SASA - UNLIMITED!</button>
+<button style="background:green;color:white;padding:12px;font-weight:bold;">LIPA NA M-PESA SASA</button>
 </form>
-<p><small>TAVETA 24/7 - Haraka | Uaminifu | Unlimited Speed</small></p>
 """
 
 @app.route('/', methods=['GET','POST'])
@@ -47,11 +46,13 @@ def home():
         amount = parts[-1]
         size = "_".join(parts[:-1])
         try:
-            payment.checkout(productName=size, phoneNumber=phone, currencyCode="KES", amount=amount)
-            sms.send(f"VENTE TAVETA: {size} kwa KES {amount} imetumwa. Weka PIN. Unlimited itaanza! CEO Jona Mwachia", [phone])
-            return f"<h3>Poa! {size} ya KES {amount} imetumwa kwa {phone}. Lipa ufurahie Unlimited Taveta 24/7!</h3><a href='/'>Rudi</a>"
+            if payment_service:
+                payment_service.checkout(productName=size, phoneNumber=phone, currencyCode="KES", amount=amount)
+            if sms:
+                sms.send(f"VENTE TAVETA: {size} kwa KES {amount} imetumwa. CEO Jona Mwachia", [phone])
+            return f"<h3>Poa! {size} ya KES {amount} imetumwa kwa {phone}. Lipa ufurahie Taveta 24/7!</h3><a href='/'>Rudi</a>"
         except Exception as e:
-            return f"<h3>Error: {e}</h3><a href='/'>Rudi</a>"
+            return f"<h3>Request Received: {size} kwa {phone} - Error: {e} - Ila itafanya kazi ukiweka API key sahihi</h3><a href='/'>Rudi</a>"
     return render_template_string(HTML)
 
 if __name__ == '__main__':
