@@ -9,7 +9,7 @@ AT_API_KEY = os.environ.get("AT_API_KEY")
 
 africastalking.initialize(AT_USERNAME, AT_API_KEY)
 sms = africastalking.SMS
-payment = africastalking.Payment
+# payment = africastalking.Payment  # version mpya haina hii
 
 HTML = """
 <h2>VENTE - CEO Jona Mwachia</h2>
