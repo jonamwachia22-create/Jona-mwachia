@@ -1,2 +1,6 @@
-flask
+```
+Flask
+africastalking
 gunicorn
+python-dotenv
+```
