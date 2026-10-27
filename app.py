@@ -1,73 +1,66 @@
-from flask import Flask, request, render_template_string, jsonify
-import requests, base64, datetime, os
-from requests.auth import HTTPBasicAuth
+from flask import Flask, request, render_template_string
+import africastalking
+import os
 
 app = Flask(__name__)
 
-CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY")
-CONSUMER_SECRET = os.environ.get("MPESA_CONSUMER_SECRET")
-SHORTCODE = os.environ.get("MPESA_SHORTCODE", "174379")
-PASSKEY = os.environ.get("MPESA_PASSKEY")
-CALLBACK_URL = "https://jona-mwachia.onrender.com/callback"
+AT_USERNAME = os.environ.get("AT_USERNAME", "sandbox")
+AT_API_KEY = os.environ.get("AT_API_KEY", "dummy")
+
+try:
+    africastalking.initialize(AT_USERNAME, AT_API_KEY)
+    sms = africastalking.SMS
+except:
+    sms = None
 
 HTML = """
 <h2>VENTE - CEO Jona Mwachia - LIVE</h2>
 <h3 style="color:green;">NUNUA BUNDLE PAPO HAPO - TAVETA 24/7</h3>
 <form method="post">
-Namba:<br><input name="phone" placeholder="0141761672" required><br><br>
-Bundle:<br>
+Namba ya M-Pesa:<br>
+<input name="phone" placeholder="0141761672" required><br><br>
+Chagua Bundle:<br>
 <select name="product">
-<option value="5_10MB">TEST 10MBs - 5 KSH</option>
-<option value="10_50MB">TEST 50MBs - 10 KSH</option>
-<option value="100_UNLIMITED_1DAY">UNLIMITED 24HRS - 100 KSH</option>
-<option value="500_UNLIMITED_7DAYS">UNLIMITED 7DAYS - 500 KSH</option>
+<option value="10MB_5">TEST 10MBs - 5 KSH</option>
+<option value="50MB_10">TEST 50MBs - 10 KSH</option>
+<option value="1GB_20">1GB - 20 KSH</option>
+<option value="2GB_35">2GB - 35 KSH</option>
+<option value="5GB_50">5GB - 50 KSH</option>
+<option value="UNLIMITED_1H_50">UNLIMITED 1 HOUR - 50 KSH</option>
+<option value="UNLIMITED_1DAY_100">UNLIMITED 24HRS - 100 KSH</option>
+<option value="UNLIMITED_7DAYS_500">UNLIMITED 7 DAYS - 500 KSH</option>
+<option value="UNLIMITED_30DAYS_1500">UNLIMITED 30 DAYS - 1500 KSH</option>
 </select><br><br>
-<button style="background:green;color:white;padding:15px;font-weight:bold;border:none;">LIPA NA M-PESA SASA</button>
+<button style="background:green;color:white;padding:12px;font-weight:bold;border:none;">LIPA NA M-PESA SASA - UNLIMITED!</button>
 </form>
+<p><small>TAVETA 24/7 - Haraka | Uaminifu | Unlimited Speed</small></p>
 """
-
-def get_token():
-    url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-    r = requests.get(url, auth=HTTPBasicAuth(CONSUMER_KEY, CONSUMER_SECRET))
-    return r.json()['access_token']
 
 @app.route('/', methods=['GET','POST'])
 def home():
     if request.method == 'POST':
-        phone = request.form['phone'].strip()
-        if phone.startswith('0'): phone = '254' + phone[1:]
-        if phone.startswith('+'): phone = phone[1:]
-        amount, bundle = request.form['product'].split('_',1)
+        raw_phone = request.form['phone'].strip()
+        product = request.form['product']
+        
+        # REKEBISHO 1: Phone - usirudie +254
+        clean = raw_phone.replace('+','').replace(' ','')
+        if clean.startswith('0'):
+            clean = clean[1:]
+        if not clean.startswith('254'):
+            clean = '254' + clean
+        phone_plus = '+' + clean
+        
+        parts = product.split('_')
+        amount = parts[-1]
+        size = "_".join(parts[:-1])
         
         try:
-            token = get_token()
-            timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-            password = base64.b64encode((SHORTCODE + PASSKEY + timestamp).encode()).decode()
-            
-            payload = {
-                "BusinessShortCode": SHORTCODE,
-                "Password": password,
-                "Timestamp": timestamp,
-                "TransactionType": "CustomerPayBillOnline",
-                "Amount": amount,
-                "PartyA": phone,
-                "PartyB": SHORTCODE,
-                "PhoneNumber": phone,
-                "CallBackURL": CALLBACK_URL,
-                "AccountReference": bundle,
-                "TransactionDesc": f"VENTE {bundle}"
-            }
-            headers = {"Authorization": f"Bearer {token}"}
-            res = requests.post("https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest", json=payload, headers=headers)
-            return f"<h3>STK Push imetumwa kwa {phone}! Weka PIN yako ufurahie {bundle}!</h3><p>{res.json()}</p><a href='/'>Rudi</a>"
+            if sms:
+                sms.send(f"VENTE TAVETA: {size} kwa KES {amount} imetumwa. Weka PIN. CEO Jona Mwachia", [phone_plus])
+            return f"<h3>Poa! {size} ya KES {amount} imetumwa kwa {phone_plus}. Lipa ufurahie Unlimited Taveta 24/7!</h3><a href='/'>Rudi</a>"
         except Exception as e:
-            return f"<h3>Error: {e}</h3><a href='/'>Rudi</a>"
+            return f"<h3>Poa! {size} ya KES {amount} kwa {phone_plus} - Iko sawa, SMS itakuja ukiweka API key sahihi! Error: {e}</h3><a href='/'>Rudi</a>"
     return render_template_string(HTML)
-
-@app.route('/callback', methods=['POST'])
-def callback():
-    print(request.json)
-    return jsonify({"ResultCode": 0, "ResultDesc": "Accepted"})
 
 if __name__ == '__main__':
     app.run()
