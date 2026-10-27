@@ -1,4 +1,3 @@
 Flask
 africastalking
 gunicorn
-python-dotenv
