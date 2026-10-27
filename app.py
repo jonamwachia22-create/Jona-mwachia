@@ -31,7 +31,7 @@ a{color:green;font-weight:bold;text-decoration:none}
 
 <div class="card" style="background:#e8ffe8;border:3px solid green;">
 <h3 style="color:green;">💚 LIPA KWANZA NA POCHI</h3>
-<p><b>Pochi Till:</b> 0707681591 / 0141761672</p>
+<p><b>Pochi Till:</b> 0141761672</p>
 <p style="font-size:18px;"><a href="https://bit.ly/pb-pay" target="_blank">👉 BONYEZA HAPA KULIPA - bit.ly/pb-pay</a></p>
 <p><small>M-Pesa > Lipa na M-Pesa > Pochi la Biashara > 0707681591</small></p>
 <p style="color:red;"><b>LIPA NDIO UPATE BUNDLE!</b></p>
