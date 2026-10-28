@@ -1,7 +1,33 @@
 from flask import Flask, request, render_template_string, jsonify
 import africastalking
 import os
+# === MPESA AUTOMATIC - ONGEZA HII PEKEE ===
+TRANSACTIONS = []
+import re
+from datetime import datetime
 
+def parse_mpesa(text):
+    m = re.search(r'Ksh\s?([\d,]+\.\d+)', text, re.IGNORECASE)
+    amount = m.group(1) if m else None
+    return amount
+
+@app.route('/sms/incoming', methods=['GET','POST'])
+def sms_incoming():
+    data = request.get_json(silent=True) or {}
+    text = data.get('message') or request.form.get('message') or str(request.data.decode() if request.data else "") or "Test"
+    TRANSACTIONS.insert(0, {"time": datetime.now().strftime("%H:%M:%S"), "raw": str(text)[:400]})
+    print(f"[MPESA] {text}")
+    return jsonify({"status":"ok"}), 200
+
+@app.route('/transactions')
+def transactions():
+    html = "<h2>Pochi 0141761672 Transactions</h2><a href='/'>Home</a><hr>"
+    for t in TRANSACTIONS:
+        html += f"<div style='border:1px solid green;margin:5px;padding:5px;'>{t['time']} - {t['raw']}</div>"
+    if not TRANSACTIONS:
+        html += "Hakuna bado. Bonyeza TEST kwenye SMS Forwarder"
+    return html
+# === MWISHO ===
 app = Flask(__name__)
 
 # Africa's Talking
